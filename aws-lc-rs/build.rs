@@ -2,26 +2,13 @@
 // SPDX-License-Identifier: Apache-2.0 OR ISC
 
 fn main() {
-    let has_mutually_exclusive_features = cfg!(feature = "non-fips") && cfg!(feature = "fips");
+    let requested_fips_feature = !cfg!(feature = "fips");
     assert!(
-        !has_mutually_exclusive_features,
-        "`fips` and `non-fips` are mutually exclusive crate features."
+        !requested_fips_feature,
+        "The `fips` feature has not been requested."
     );
 
-    // This appears asymmetric, but it reflects the `cfg` statements in lib.rs that
-    // require `aws-lc-sys` to be present when "fips" is not enabled.
-    // if `fips` is enabled, then use that
-    let sys_crate = if cfg!(feature = "fips") {
-        "aws-lc-fips-sys"
-    } else if cfg!(feature = "aws-lc-sys") {
-        "aws-lc-sys"
-    } else {
-        panic!(
-            "one of the following features must be specified: `aws-lc-sys`, `non-fips`, or `fips`."
-        );
-    };
-
-    export_sys_vars(sys_crate);
+    export_sys_vars("aws-lc-fips-sys");
 }
 
 fn export_sys_vars(sys_crate: &str) {

@@ -15,7 +15,6 @@ fn main() {
     }
 
     select_dep!("aws-lc-rs");
-    select_dep!("aws-lc-sys");
     select_dep!("aws-lc-fips-sys");
 
     assert_eq!(

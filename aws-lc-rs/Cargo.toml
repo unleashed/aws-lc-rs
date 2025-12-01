@@ -30,24 +30,21 @@ features = ["unstable"]
 
 [features]
 alloc = []
-default = ["aws-lc-sys", "alloc", "ring-io", "ring-sig-verify"]
+default = ["fips", "bindgen", "alloc", "ring-io", "ring-sig-verify"]
 ring-io = ["dep:untrusted"]
 ring-sig-verify = ["dep:untrusted"]
-bindgen = ["aws-lc-sys?/bindgen", "aws-lc-fips-sys?/bindgen"]
-asan = ["aws-lc-sys?/asan", "aws-lc-fips-sys?/asan"]
+bindgen = ["aws-lc-fips-sys?/bindgen"]
+asan = ["aws-lc-fips-sys?/asan"]
 test_logging = []
 unstable = []
-prebuilt-nasm = ["aws-lc-sys?/prebuilt-nasm"]
-
-# require non-FIPS
-non-fips = ["aws-lc-sys"]
+aws-lc-sys = []
+prebuilt-nasm = []
 
 # require FIPS
 fips = ["dep:aws-lc-fips-sys"]
 
 [dependencies]
 untrusted = { version = "0.7.1", optional = true }
-aws-lc-sys = { version = "0.23.0", path = "../aws-lc-sys", optional = true }
 aws-lc-fips-sys = { version = "0.12.0", path = "../aws-lc-fips-sys", optional = true }
 zeroize = "1.7"
 paste = "1.0.11"
