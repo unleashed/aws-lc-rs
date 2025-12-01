@@ -18,8 +18,9 @@ _fips-build: clean build
 build:
 	cargo build {{ release }}
 
+# Note: cargo run {{ release }} triggers bindings.rs recompilation. May need to look into it to avoid it.
 run:
-	cargo run {{ release }}
+	@target/release/app
 
 tree-check:
 	cargo tree -p aws-lc-fips-sys

@@ -1,5 +1,4 @@
 use aws_lc_rs::try_fips_mode;
-//use rustls::crypto::aws_lc_rs::default_provider;
 use rustls::crypto::default_fips_provider;
 
 fn main() {
