@@ -65,6 +65,8 @@ mod generated {
 }
 #[cfg(use_bindgen_generated)]
 pub use generated::*;
+#[cfg(not(use_bindgen_generated))]
+compile_error!{"no use bindgen"}
 
 #[allow(non_snake_case)]
 #[must_use]
