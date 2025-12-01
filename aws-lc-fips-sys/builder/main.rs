@@ -457,7 +457,52 @@ bindgen_available!(
     }
 );
 
+fn intercept_byob() -> bool {
+    // Check if we provided a path to pre-built artifacts
+    let Ok(artifacts_dir) = env::var("AWS_LC_FIPS_PREBUILT") else {
+        return false;
+    };
+
+    let artifacts_dir = PathBuf::from(artifacts_dir);
+
+    // Copy the pre-generated bindings to the expected location
+    // The original build script normally generates this into OUT_DIR
+    let bindings_src = artifacts_dir.join("bindings.rs");
+    if !bindings_src.exists() {
+        panic!("Prebuilt bindings.rs not found at: {}", bindings_src.display());
+    }
+
+    let mut bindings_dest = PathBuf::from(env::var("OUT_DIR").unwrap());
+    bindings_dest.push("bindings.rs");
+
+    let should_copy = if bindings_dest.exists() {
+        let src_content = std::fs::read(&bindings_src).expect("Failed to read source bindings");
+        let dest_content = std::fs::read(&bindings_dest).expect("Failed to read dest bindings");
+        src_content != dest_content // Only copy if bytes differ
+    } else {
+        true
+    };
+
+    if should_copy {
+        std::fs::copy(&bindings_src, &bindings_dest)
+            .expect("Failed to copy prebuilt bindings.rs");
+    }
+
+    // Link static libraries
+    println!("cargo:rustc-link-search=native={}", artifacts_dir.display());
+    println!("cargo:rustc-link-lib=static=aws_lc_fips_0_12_15_crypto");
+    println!("cargo:rustc-link-lib=static=aws_lc_fips_0_12_15_rust_wrapper");
+
+    // Force the build to use bindings.rs
+    emit_rustc_cfg("use_bindgen_generated");
+
+    return true;
+}
+
 fn main() {
+    if intercept_byob() {
+        return;
+    }
     initialize();
     prepare_cargo_cfg();
 
