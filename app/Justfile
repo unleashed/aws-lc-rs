@@ -1,0 +1,35 @@
+prebuilt_dir := env("AWS_LC_FIPS_PREBUILT", "/tmp/aws-lc-rs-fips-0.12.15")
+release := "--release"
+
+default: fips-prebuilt
+
+clean:
+	cargo clean
+
+[private]
+env:
+	@echo "[env] AWS_LC_FIPS_PREBUILT={{ env("AWS_LC_FIPS_PREBUILT", "(unset)") }}"
+	@echo "[just] prebuilt_dir={{ prebuilt_dir }}"
+	@echo "[cargo] release={{ release }}"
+
+[private]
+_fips-build: clean build
+
+build:
+	cargo build {{ release }}
+
+run:
+	cargo run {{ release }}
+
+tree-check:
+	cargo tree -p aws-lc-fips-sys
+	cargo tree -p aws-lc-sys # should fail
+
+fips-prebuilt:
+	#!/usr/bin/env bash
+	set -euo pipefail
+	if ! test -r "{{ prebuilt_dir }}/bindings.rs"; then
+	  echo >&2 "No bindings found in prebuilt directory"
+	  exit 1
+	fi
+	AWS_LC_FIPS_PREBUILT="{{ prebuilt_dir }}" DEP_AWS_LC_FIPS_0_12_15_INCLUDE="{{ prebuilt_dir }}/include" DEP_AWS_LC_FIPS_0_12_15_LIBCRYPTO=aws_lc_fips_0_12_15_crypto DEP_AWS_LC_FIPS_0_12_15_ROOT="{{ prebuilt_dir }}" DEP_AWS_LC_FIPS_0_12_15_CONF=OPENSSL_NO_ASYNC,OPENSSL_NO_BF,OPENSSL_NO_BLAKE2,OPENSSL_NO_BUF_FREELISTS,OPENSSL_NO_CAMELLIA,OPENSSL_NO_CAPIENG,OPENSSL_NO_CAST,OPENSSL_NO_CMS,OPENSSL_NO_COMP,OPENSSL_NO_CT,OPENSSL_NO_DANE,OPENSSL_NO_DEPRECATED,OPENSSL_NO_DGRAM,OPENSSL_NO_DYNAMIC_ENGINE,OPENSSL_NO_EC_NISTP_64_GCC_128,OPENSSL_NO_EC2M,OPENSSL_NO_EGD,OPENSSL_NO_ENGINE,OPENSSL_NO_GMP,OPENSSL_NO_GOST,OPENSSL_NO_HEARTBEATS,OPENSSL_NO_HW,OPENSSL_NO_IDEA,OPENSSL_NO_JPAKE,OPENSSL_NO_KRB5,OPENSSL_NO_MD2,OPENSSL_NO_MDC2,OPENSSL_NO_OCB,OPENSSL_NO_OCSP,OPENSSL_NO_RC2,OPENSSL_NO_RC5,OPENSSL_NO_RFC3779,OPENSSL_NO_RIPEMD,OPENSSL_NO_RMD160,OPENSSL_NO_SCTP,OPENSSL_NO_SEED,OPENSSL_NO_SM2,OPENSSL_NO_SM3,OPENSSL_NO_SM4,OPENSSL_NO_SRP,OPENSSL_NO_SSL_TRACE,OPENSSL_NO_SSL2,OPENSSL_NO_SSL3,OPENSSL_NO_SSL3_METHOD,OPENSSL_NO_STATIC_ENGINE,OPENSSL_NO_STORE,OPENSSL_NO_WHIRLPOOL "{{ just_executable() }}" -f "{{ justfile() }}" "prebuilt_dir={{ prebuilt_dir }}" "release={{ release }}" _fips-build
