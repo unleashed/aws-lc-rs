@@ -34,9 +34,11 @@ env-prebuilt:
 	@echo "[env] AWS_LC_FIPS_PREBUILT={{ env("AWS_LC_FIPS_PREBUILT", "(unset)") }}"
 	@echo "[just] prebuilt-dir={{ prebuilt_dir }}"
 
+[private]
 env-docker:
 	@echo "[docker] docker_build_args={{ docker_build_args }}"
 
+[private]
 env-build:
 	@echo "[rust] rust_version={{ rust_version }}"
 	@echo "[just] just_version={{ just_version }}"
