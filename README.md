@@ -41,7 +41,7 @@ This process will build an Operational Environment in the Security Policy of the
 
 You can check other `just` targets via `just --list`.
 
-## Depending on this create for your app
+## Depending on this crate for your app
 
 Ensuring that your application building with cargo picks up the relevant FIPS-140-3 cryptography code (statically) means that you'll need to point cargo to this crate. Using the patching feature of cargo you can make sure that no other versions are pulled in.
 
