@@ -12,6 +12,9 @@ env:
 	@echo "[just] prebuilt_dir={{ prebuilt_dir }}"
 	@echo "[cargo] release={{ release }}"
 
+one-step-build:
+	AWS_LC_FIPS_ENABLE_RELEASE_MODE=1 JUST_ARGUMENTS="rust_version=1.91.1" cargo build {{ release }}
+
 [private]
 _fips-build: clean build
 
