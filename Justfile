@@ -60,7 +60,13 @@ docker-image-cleanup:
 
 [group("docker")]
 docker-build: docker-image-build mkdir
-	docker run --rm -v ./:/crate/ -v "{{ prebuilt_dir }}":/tmp/aws-lc-rs-fips-0.12.15 -e CARGO_RELEASE_MODE="{{ release }}" -e RUST_VERSION="{{ rust_version }}" -e JUST_VERSION="{{ just_version }}" -ti fips-builder:latest
+	#!/usr/bin/env bash
+	set -euo pipefail
+	ttyflags="-i "
+	if [ ! -t 0 ]; then
+	  ttyflags=""
+	fi
+	docker run --rm -v ./:/crate/ -v "{{ prebuilt_dir }}":/tmp/aws-lc-rs-fips-0.12.15 -e CARGO_RELEASE_MODE="{{ release }}" -e RUST_VERSION="{{ rust_version }}" -e JUST_VERSION="{{ just_version }}" -t ${ttyflags} fips-builder:latest
 
 [group("fips")]
 [private]
