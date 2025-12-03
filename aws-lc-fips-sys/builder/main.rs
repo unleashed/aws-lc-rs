@@ -457,6 +457,124 @@ bindgen_available!(
     }
 );
 
+fn intercept_release_mode() {
+    // Check if release mode is enabled to build the FIPS 140-3 module with containers
+    // We skip this unless explicitly enabled to avoid slow container builds
+    let Ok(_) = env::var("AWS_LC_FIPS_ENABLE_RELEASE_MODE") else { return };
+
+    emit_warning("FIPS release mode enabled (AWS_LC_FIPS_ENABLE_RELEASE_MODE is set)");
+
+    // Check if AWS_LC_FIPS_PREBUILT is already set
+    // If so we'll assume artifacts are already prepared
+    if let Ok(prebuilt_dir) = env::var("AWS_LC_FIPS_PREBUILT") {
+        let prebuilt_path = PathBuf::from(&prebuilt_dir);
+        let bindings_exists = prebuilt_path.join("bindings.rs").exists();
+
+        if bindings_exists {
+            emit_warning(&format!(
+                "Using existing FIPS prebuilt artifacts from: {}",
+                prebuilt_dir
+            ));
+            return;
+        } else {
+            emit_warning(&format!(
+                "AWS_LC_FIPS_PREBUILT is set to {} but bindings.rs not found. Will rebuild.",
+                prebuilt_dir
+            ));
+        }
+    }
+
+    let just_args = env::var("JUST_ARGUMENTS")
+        .ok()
+        .map(|args| {
+            args.split_whitespace()
+                .map(String::from)
+                .collect::<Vec<String>>()
+        })
+        .unwrap_or_default();
+
+    // Determine the prebuilt directory via JUST_ARGUMENTS,
+    // or AWS_LC_FIPS_PREBUILT in that order, or fall back
+    // to a default value (must match default value elsewhere)
+    let prebuilt_dir = extract_prebuilt_dir_from_args(&just_args)
+        .or_else(|| env::var("AWS_LC_FIPS_PREBUILT").ok())
+        .unwrap_or_else(|| "/tmp/aws-lc-rs-fips-0.12.15".to_string());
+
+    env::set_var("AWS_LC_FIPS_PREBUILT", &prebuilt_dir);
+
+    emit_warning(&format!(
+        "FIPS prebuilt directory set to: {}",
+        prebuilt_dir
+    ));
+
+    emit_warning("Executing just recipe: build-artifacts (this may take several minutes)");
+    execute_just_recipe("build-artifacts", &just_args);
+
+    emit_warning("recipe build-artifacts completed successfully");
+}
+
+fn extract_prebuilt_dir_from_args(args: &[String]) -> Option<String> {
+    for arg in args {
+        if let Some(value) = arg.strip_prefix("prebuilt_dir=") {
+            return Some(value.to_string());
+        }
+    }
+    None
+}
+
+fn execute_just_recipe(recipe_name: &str, args: &[String]) {
+    let workspace_root = find_workspace_root();
+
+    let mut cmd = Command::new("just");
+    cmd.current_dir(&workspace_root);
+
+    for arg in args {
+        cmd.arg(arg);
+    }
+
+    cmd.arg(recipe_name);
+
+    // Execute the command
+    let output = cmd.output().unwrap_or_else(|e| {
+        panic!(
+            "Error executing just command: {}",
+            e
+        );
+    });
+
+    // Check if the command was successful
+    if !output.status.success() {
+        eprintln!("=== Just recipe '{}' failed ===", recipe_name);
+        eprintln!("Exit code: {:?}", output.status.code());
+        eprintln!("\n=== STDOUT ===");
+        eprintln!("{}", String::from_utf8_lossy(&output.stdout));
+        eprintln!("\n=== STDERR ===");
+        eprintln!("{}", String::from_utf8_lossy(&output.stderr));
+        panic!("Just recipe '{}' failed with exit code: {:?}", recipe_name, output.status.code());
+    }
+
+    // Print output for debugging (visible with cargo build --verbose)
+    if !output.stdout.is_empty() {
+        emit_warning(&format!("Just recipe '{}' stdout: {}", recipe_name, String::from_utf8_lossy(&output.stdout)));
+    }
+    if !output.stderr.is_empty() {
+        emit_warning(&format!("Just recipe '{}' stderr: {}", recipe_name, String::from_utf8_lossy(&output.stderr)));
+    }
+}
+
+fn find_workspace_root() -> PathBuf {
+    let mut current = current_dir();
+    loop {
+        let justfile_path = current.join("Justfile");
+        if justfile_path.exists() {
+            return current;
+        }
+        if !current.pop() {
+            panic!("can't find Justfile");
+        }
+    }
+}
+
 fn intercept_byob() -> bool {
     // Check if we provided a path to pre-built artifacts
     let Ok(artifacts_dir) = env::var("AWS_LC_FIPS_PREBUILT") else {
@@ -500,6 +618,9 @@ fn intercept_byob() -> bool {
 }
 
 fn main() {
+    // Execute Just recipes to prepare FIPS prebuilt artifacts
+    intercept_release_mode();
+
     if intercept_byob() {
         return;
     }
