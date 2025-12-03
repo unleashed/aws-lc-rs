@@ -460,7 +460,9 @@ bindgen_available!(
 fn intercept_release_mode() {
     // Check if release mode is enabled to build the FIPS 140-3 module with containers
     // We skip this unless explicitly enabled to avoid slow container builds
-    let Ok(_) = env::var("AWS_LC_FIPS_ENABLE_RELEASE_MODE") else { return };
+    let Ok(_) = env::var("AWS_LC_FIPS_ENABLE_RELEASE_MODE") else {
+        return;
+    };
 
     emit_warning("FIPS release mode enabled (AWS_LC_FIPS_ENABLE_RELEASE_MODE is set)");
 
@@ -502,10 +504,7 @@ fn intercept_release_mode() {
 
     env::set_var("AWS_LC_FIPS_PREBUILT", &prebuilt_dir);
 
-    emit_warning(&format!(
-        "FIPS prebuilt directory set to: {}",
-        prebuilt_dir
-    ));
+    emit_warning(&format!("FIPS prebuilt directory set to: {}", prebuilt_dir));
 
     emit_warning("Executing just recipe: build-artifacts (this may take several minutes)");
     execute_just_recipe("build-artifacts", &just_args);
@@ -536,10 +535,7 @@ fn execute_just_recipe(recipe_name: &str, args: &[String]) {
 
     // Execute the command
     let output = cmd.output().unwrap_or_else(|e| {
-        panic!(
-            "Error executing just command: {}",
-            e
-        );
+        panic!("Error executing just command: {}", e);
     });
 
     // Check if the command was successful
@@ -550,15 +546,27 @@ fn execute_just_recipe(recipe_name: &str, args: &[String]) {
         eprintln!("{}", String::from_utf8_lossy(&output.stdout));
         eprintln!("\n=== STDERR ===");
         eprintln!("{}", String::from_utf8_lossy(&output.stderr));
-        panic!("Just recipe '{}' failed with exit code: {:?}", recipe_name, output.status.code());
+        panic!(
+            "Just recipe '{}' failed with exit code: {:?}",
+            recipe_name,
+            output.status.code()
+        );
     }
 
     // Print output for debugging (visible with cargo build --verbose)
     if !output.stdout.is_empty() {
-        emit_warning(&format!("Just recipe '{}' stdout: {}", recipe_name, String::from_utf8_lossy(&output.stdout)));
+        emit_warning(&format!(
+            "Just recipe '{}' stdout: {}",
+            recipe_name,
+            String::from_utf8_lossy(&output.stdout)
+        ));
     }
     if !output.stderr.is_empty() {
-        emit_warning(&format!("Just recipe '{}' stderr: {}", recipe_name, String::from_utf8_lossy(&output.stderr)));
+        emit_warning(&format!(
+            "Just recipe '{}' stderr: {}",
+            recipe_name,
+            String::from_utf8_lossy(&output.stderr)
+        ));
     }
 }
 
@@ -587,7 +595,10 @@ fn intercept_byob() -> bool {
     // The original build script normally generates this into OUT_DIR
     let bindings_src = artifacts_dir.join("bindings.rs");
     if !bindings_src.exists() {
-        panic!("Prebuilt bindings.rs not found at: {}", bindings_src.display());
+        panic!(
+            "Prebuilt bindings.rs not found at: {}",
+            bindings_src.display()
+        );
     }
 
     let mut bindings_dest = PathBuf::from(env::var("OUT_DIR").unwrap());
@@ -602,8 +613,7 @@ fn intercept_byob() -> bool {
     };
 
     if should_copy {
-        std::fs::copy(&bindings_src, &bindings_dest)
-            .expect("Failed to copy prebuilt bindings.rs");
+        std::fs::copy(&bindings_src, &bindings_dest).expect("Failed to copy prebuilt bindings.rs");
     }
 
     // Link static libraries
